@@ -20,13 +20,13 @@ function App() {
         throw new Error('Invalid Maps API key or API access is restricted');
       }
 
-      // Verify Solar API Key (using a simple geocoding request as test)
-      const solarResponse = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=test&key=${import.meta.env.VITE_GOOGLE_SOLAR_API_KEY}`
+      // Verify Geocoding API access using the Maps API key
+      const geocodingResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=test&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
       );
 
-      if (!solarResponse.ok) {
-        throw new Error('Invalid Solar API key or API access is restricted');
+      if (!geocodingResponse.ok) {
+        throw new Error('Invalid Maps API key or API access is restricted');
       }
       
       return true;
@@ -47,15 +47,15 @@ function App() {
         throw new Error('Please enter a valid address');
       }
 
-      // Verify both API keys
+      // Verify API key
       const areApiKeysValid = await verifyApiKeys();
       if (!areApiKeysValid) {
         throw new Error('API key verification failed');
       }
 
-      // Get geocoded coordinates for the address
+      // Get geocoded coordinates for the address using the Maps API key
       const geocodeResponse = await axios.get(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${import.meta.env.VITE_GOOGLE_SOLAR_API_KEY}`
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
       );
 
       if (geocodeResponse.data.status === 'ZERO_RESULTS') {
@@ -103,7 +103,7 @@ function App() {
         <Paper shadow="sm" p="md" withBorder>
           <Stack spacing="md">
             {error && (
-              <Alert color="red\" title="Error">
+              <Alert color="red" title="Error">
                 {error}
               </Alert>
             )}
