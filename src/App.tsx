@@ -103,7 +103,7 @@ function App() {
         <Paper shadow="sm" p="md" withBorder>
           <Stack spacing="md">
             {error && (
-              <Alert color="red" title="Error">
+              <Alert color="red\" title="Error">
                 {error}
               </Alert>
             )}
