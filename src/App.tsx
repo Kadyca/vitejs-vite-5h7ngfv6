@@ -80,7 +80,7 @@ function App() {
 
       setMapUrl(staticMapUrl);
 
-      // Make the Solar API request
+      // Make the Solar API request with the correct API key
       const solarResponse = await axios.post(
         'https://solar.googleapis.com/v1/buildingInsights:findClosest',
         {
@@ -92,7 +92,7 @@ function App() {
         {
           headers: {
             'Content-Type': 'application/json',
-            'X-Goog-Api-Key': import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+            'X-Goog-Api-Key': import.meta.env.VITE_GOOGLE_SOLAR_API_KEY
           }
         }
       );
@@ -120,7 +120,7 @@ function App() {
         <Paper shadow="sm" p="md" withBorder>
           <Stack spacing="md">
             {error && (
-              <Alert color="red\" title="Error">
+              <Alert color="red" title="Error">
                 {error}
               </Alert>
             )}
