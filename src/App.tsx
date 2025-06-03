@@ -9,15 +9,24 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const verifyApiKey = async () => {
+  const verifyApiKeys = async () => {
     try {
-      const response = await fetch(
+      // Verify Maps API Key
+      const mapsResponse = await fetch(
         `https://maps.googleapis.com/maps/api/staticmap?center=0,0&zoom=1&size=100x100&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
       );
       
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`API Error: ${text}`);
+      if (!mapsResponse.ok) {
+        throw new Error('Invalid Maps API key or API access is restricted');
+      }
+
+      // Verify Solar API Key (using a simple geocoding request as test)
+      const solarResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=test&key=${import.meta.env.VITE_GOOGLE_SOLAR_API_KEY}`
+      );
+
+      if (!solarResponse.ok) {
+        throw new Error('Invalid Solar API key or API access is restricted');
       }
       
       return true;
@@ -32,10 +41,10 @@ function App() {
     setError(null);
     
     try {
-      // First verify the API key
-      const isApiKeyValid = await verifyApiKey();
-      if (!isApiKeyValid) {
-        throw new Error('Invalid API key or API access is restricted');
+      // Verify both API keys
+      const areApiKeysValid = await verifyApiKeys();
+      if (!areApiKeysValid) {
+        throw new Error('API key verification failed');
       }
 
       // Get static map image
@@ -51,7 +60,18 @@ function App() {
 
       setMapUrl(staticMapUrl);
 
-      // Mock solar API call (replace with actual Google Solar API when available)
+      // Get geocoded coordinates for the address
+      const geocodeResponse = await axios.get(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${import.meta.env.VITE_GOOGLE_SOLAR_API_KEY}`
+      );
+
+      if (geocodeResponse.data.status !== 'OK') {
+        throw new Error('Failed to geocode address');
+      }
+
+      const { lat, lng } = geocodeResponse.data.results[0].geometry.location;
+
+      // Make the solar API request (using mock data for now as the actual Solar API isn't publicly available yet)
       const mockSolarData = {
         yearlyGeneration: '12000',
         potentialSavings: '25000',
@@ -73,7 +93,7 @@ function App() {
         <Paper shadow="sm" p="md" withBorder>
           <Stack spacing="md">
             {error && (
-              <Alert color="red\" title="Error">
+              <Alert color="red" title="Error">
                 {error}
               </Alert>
             )}
