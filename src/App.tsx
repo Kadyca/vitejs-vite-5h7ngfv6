@@ -11,28 +11,39 @@ function App() {
 
   const verifyApiKeys = async () => {
     try {
-      // Verify Maps API Key
-      const mapsResponse = await fetch(
-        `https://maps.googleapis.com/maps/api/staticmap?center=0,0&zoom=1&size=100x100&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
-      );
-      
-      if (!mapsResponse.ok) {
-        throw new Error('Invalid Maps API key or API access is restricted');
-      }
-
-      // Verify Geocoding API access using the Maps API key
-      const geocodingResponse = await fetch(
+      // First verify Maps API Key with a simpler endpoint
+      const mapsResponse = await axios.get(
         `https://maps.googleapis.com/maps/api/geocode/json?address=test&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
       );
-
-      if (!geocodingResponse.ok) {
-        throw new Error('Invalid Maps API key or API access is restricted');
-      }
       
+      if (mapsResponse.data.status === 'REQUEST_DENIED') {
+        throw new Error('Maps API key is invalid or missing required permissions');
+      }
+
+      // Verify Solar API with a simple request
+      const solarResponse = await axios.post(
+        'https://solar.googleapis.com/v1/dataLayers:get',
+        {
+          location: {
+            latitude: 37.4220656,
+            longitude: -122.0840897
+          }
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': import.meta.env.VITE_GOOGLE_SOLAR_API_KEY
+          }
+        }
+      );
+
       return true;
     } catch (error) {
       console.error('API Key verification failed:', error);
-      return false;
+      if (axios.isAxiosError(error) && error.response) {
+        throw new Error(`API verification failed: ${error.response.data.error?.message || error.message}`);
+      }
+      throw error;
     }
   };
 
@@ -47,11 +58,8 @@ function App() {
         throw new Error('Please enter a valid address');
       }
 
-      // Verify API key
-      const areApiKeysValid = await verifyApiKeys();
-      if (!areApiKeysValid) {
-        throw new Error('API key verification failed');
-      }
+      // Verify API keys
+      await verifyApiKeys();
 
       // Get geocoded coordinates for the address
       const geocodeResponse = await axios.get(
@@ -120,7 +128,7 @@ function App() {
         <Paper shadow="sm" p="md" withBorder>
           <Stack spacing="md">
             {error && (
-              <Alert color="red\" title="Error">
+              <Alert color="red" title="Error">
                 {error}
               </Alert>
             )}
