@@ -39,18 +39,38 @@ function App() {
   const handleAddressSubmit = async () => {
     setLoading(true);
     setError(null);
+    setSolarData(null);
+    setMapUrl('');
     
     try {
+      if (!address.trim()) {
+        throw new Error('Please enter a valid address');
+      }
+
       // Verify both API keys
       const areApiKeysValid = await verifyApiKeys();
       if (!areApiKeysValid) {
         throw new Error('API key verification failed');
       }
 
+      // Get geocoded coordinates for the address
+      const geocodeResponse = await axios.get(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${import.meta.env.VITE_GOOGLE_SOLAR_API_KEY}`
+      );
+
+      if (geocodeResponse.data.status === 'ZERO_RESULTS') {
+        throw new Error('Address not found. Please check the address and try again.');
+      }
+
+      if (geocodeResponse.data.status !== 'OK') {
+        throw new Error(`Geocoding error: ${geocodeResponse.data.status}`);
+      }
+
+      const { lat, lng } = geocodeResponse.data.results[0].geometry.location;
+      const formattedAddress = geocodeResponse.data.results[0].formatted_address;
+
       // Get static map image
-      const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(
-        address
-      )}&zoom=18&size=600x400&maptype=satellite&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`;
+      const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=18&size=600x400&maptype=satellite&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`;
       
       // Test if the image URL is valid
       const mapResponse = await fetch(staticMapUrl);
@@ -60,24 +80,14 @@ function App() {
 
       setMapUrl(staticMapUrl);
 
-      // Get geocoded coordinates for the address
-      const geocodeResponse = await axios.get(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${import.meta.env.VITE_GOOGLE_SOLAR_API_KEY}`
-      );
-
-      if (geocodeResponse.data.status !== 'OK') {
-        throw new Error('Failed to geocode address');
-      }
-
-      const { lat, lng } = geocodeResponse.data.results[0].geometry.location;
-
       // Make the solar API request (using mock data for now as the actual Solar API isn't publicly available yet)
       const mockSolarData = {
         yearlyGeneration: '12000',
         potentialSavings: '25000',
         annualSunshine: '2800',
         roofSpace: '85',
-        numberOfPanels: '24'
+        numberOfPanels: '24',
+        address: formattedAddress
       };
       setSolarData(mockSolarData);
     } catch (error) {
@@ -93,7 +103,7 @@ function App() {
         <Paper shadow="sm" p="md" withBorder>
           <Stack spacing="md">
             {error && (
-              <Alert color="red\" title="Error">
+              <Alert color="red" title="Error">
                 {error}
               </Alert>
             )}
@@ -129,6 +139,7 @@ function App() {
                   <Paper p="md" withBorder>
                     <Text size="lg" fw={700}>Solar Potential Analysis</Text>
                     <Stack spacing="xs" mt="md">
+                      <Text>Address: {solarData.address}</Text>
                       <Text>Yearly Generation: {solarData.yearlyGeneration} kWh</Text>
                       <Text>20-Year Savings: ${solarData.potentialSavings}</Text>
                       <Text>Annual Sunshine: {solarData.annualSunshine} hours</Text>
