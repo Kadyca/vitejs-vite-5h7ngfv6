@@ -53,7 +53,7 @@ function App() {
         throw new Error('API key verification failed');
       }
 
-      // Get geocoded coordinates for the address using the Maps API key
+      // Get geocoded coordinates for the address
       const geocodeResponse = await axios.get(
         `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`
       );
@@ -80,16 +80,33 @@ function App() {
 
       setMapUrl(staticMapUrl);
 
-      // Make the solar API request (using mock data for now as the actual Solar API isn't publicly available yet)
-      const mockSolarData = {
-        yearlyGeneration: '12000',
-        potentialSavings: '25000',
-        annualSunshine: '2800',
-        roofSpace: '85',
-        numberOfPanels: '24',
+      // Make the Solar API request
+      const solarResponse = await axios.post(
+        'https://solar.googleapis.com/v1/buildingInsights:findClosest',
+        {
+          location: {
+            latitude: lat,
+            longitude: lng
+          }
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+          }
+        }
+      );
+
+      const solarData = {
+        yearlyGeneration: solarResponse.data.solarPotential.maxArrayPanelsCount * solarResponse.data.solarPotential.panelCapacityWatts * solarResponse.data.solarPotential.yearlyEnergyDcKwh,
+        potentialSavings: Math.round(solarResponse.data.solarPotential.yearlyEnergyDcKwh * 0.12 * 20), // Assuming $0.12 per kWh over 20 years
+        annualSunshine: Math.round(solarResponse.data.solarPotential.sunshineQuantiles.reduce((a, b) => a + b) / solarResponse.data.solarPotential.sunshineQuantiles.length * 365 * 24),
+        roofSpace: Math.round(solarResponse.data.solarPotential.maxArrayAreaMeters2),
+        numberOfPanels: solarResponse.data.solarPotential.maxArrayPanelsCount,
         address: formattedAddress
       };
-      setSolarData(mockSolarData);
+
+      setSolarData(solarData);
     } catch (error) {
       console.error('Error:', error);
       setError(error instanceof Error ? error.message : 'An unknown error occurred');
@@ -103,7 +120,7 @@ function App() {
         <Paper shadow="sm" p="md" withBorder>
           <Stack spacing="md">
             {error && (
-              <Alert color="red\" title="Error">
+              <Alert color="red" title="Error">
                 {error}
               </Alert>
             )}
