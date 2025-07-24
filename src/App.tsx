@@ -9,63 +9,6 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const verifyApiKeys = async () => {
-    try {
-      console.log('Verifying API keys...');
-      
-      // First verify Maps API Key with a simpler endpoint
-      const mapsResponse = await axios.get(
-        `https://maps.googleapis.com/maps/api/geocode/json?address=test&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}`,
-        {
-          headers: {
-            'Accept': 'application/json',
-          },
-          timeout: 10000
-        }
-      );
-      
-      if (mapsResponse.data.status === 'REQUEST_DENIED') {
-        throw new Error('Maps API key is invalid or missing required permissions');
-      }
-
-      // Verify Solar API with a simple request
-      console.log('Verifying Solar API...');
-      const solarResponse = await axios.post(
-        'https://solar.googleapis.com/v1/dataLayers:get',
-        {
-          location: {
-            latitude: 37.4220656,
-            longitude: -122.0840897
-          }
-        },
-        {
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': import.meta.env.VITE_GOOGLE_SOLAR_API_KEY
-          },
-          timeout: 10000
-        }
-      );
-
-      console.log('API keys verified successfully');
-      return true;
-    } catch (error) {
-      console.error('API Key verification failed:', error);
-      
-      if (axios.isAxiosError(error) && error.response) {
-        const errorMessage = error.response.data.error?.message || error.response.statusText || error.message;
-        throw new Error(`API verification failed (${error.response.status}): ${errorMessage}`);
-      } else if (axios.isAxiosError(error) && error.request) {
-        throw new Error('Network error: Unable to reach Google APIs. Please check your internet connection and API key configuration.');
-      } else if (error.code === 'ECONNABORTED') {
-        throw new Error('Request timeout: Google APIs are taking too long to respond.');
-      }
-      
-      throw error;
-    }
-  };
-
   const handleAddressSubmit = async () => {
     setLoading(true);
     setError(null);
@@ -77,8 +20,7 @@ function App() {
         throw new Error('Please enter a valid address');
       }
 
-      // Verify API keys
-      await verifyApiKeys();
+      console.log('Starting address analysis...');
 
       // Get geocoded coordinates for the address
       const geocodeResponse = await axios.get(
